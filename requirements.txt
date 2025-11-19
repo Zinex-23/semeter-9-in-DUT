@@ -1,0 +1,21 @@
+# --- Core backend ---
+Flask==3.0.3
+gunicorn==22.0.0
+
+# --- HTTP client ---
+requests==2.31.0
+
+# --- Video processing / AI model ---
+ultralytics==8.2.28
+opencv-python==4.9.0.80
+opencv-python-headless==4.9.0.80
+
+# --- Image processing ---
+Pillow==10.2.0
+numpy==1.26.4
+
+# --- CSV / data ---
+pandas==2.2.2
+
+# --- Firebase (REST only, optional) ---
+python-dotenv==1.0.1

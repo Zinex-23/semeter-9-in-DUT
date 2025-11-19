@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chọn ROI 1911</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --primary-color: #86D0FF;
+      --primary-dark: #5bb8ff; /* Màu đậm hơn cho hover */
+      --text-color: #4a4a4a;
+      --bg-color: #f4f7f6;
+      --card-bg: #ffffff;
+      --success-color: #4CAF50;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    h1 {
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 20px;
+      letter-spacing: 0.5px;
+    }
+
+    /* Main Card Container */
+    .main-card {
+      background: var(--card-bg);
+      padding: 30px;
+      border-radius: 20px;
+      box-shadow: 0 10px 30px rgba(134, 208, 255, 0.2); /* Shadow màu xanh nhẹ */
+      width: 100%;
+      max-width: 900px;
+      text-align: center;
+      position: relative;
+    }
+
+    /* Switch Container */
+    .switch-wrapper {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-bottom: 25px;
+      gap: 15px;
+      font-weight: 500;
+      color: #aaa;
+    }
+
+    .switch-label { transition: color 0.3s; cursor: pointer; }
+    .switch-label.active { color: var(--primary-dark); font-weight: 700; }
+
+    /* Custom Toggle Switch */
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 56px;
+      height: 30px;
+    }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #eee;
+      transition: .4s;
+      border-radius: 34px;
+      box-shadow: inset 0 2px 5px rgba(0,0,0,0.05);
+    }
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 22px;
+      width: 22px;
+      left: 4px;
+      bottom: 4px;
+      background-color: white;
+      transition: .4s;
+      border-radius: 50%;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+    input:checked + .slider { background-color: var(--primary-color); }
+    input:checked + .slider:before { transform: translateX(26px); }
+
+    /* Video/Canvas Wrapper */
+    #canvasWrapper {
+      position: relative;
+      display: inline-block;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      background: #000;
+      line-height: 0; /* Loại bỏ khoảng trắng dưới video */
+    }
+
+    video, #roiCanvas {
+      display: block;
+      max-width: 100%;
+      height: auto;
+    }
+
+    #roiCanvas {
+      position: absolute;
+      left: 0; top: 0;
+      cursor: crosshair;
+      pointer-events: auto;
+    }
+
+    /* Info Text */
+    #info {
+      margin-top: 15px;
+      font-size: 14px;
+      color: #888;
+      min-height: 20px;
+    }
+
+    /* Button Group */
+    .controls {
+      margin-top: 25px;
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      font-family: 'Poppins', sans-serif;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 50px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.3s ease;
+      font-size: 14px;
+      outline: none;
+    }
+
+    /* Style từng loại nút */
+    #btnSave {
+      background-color: var(--primary-color);
+      color: white;
+      box-shadow: 0 4px 15px rgba(134, 208, 255, 0.4);
+    }
+    #btnSave:hover {
+      background-color: var(--primary-dark);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(134, 208, 255, 0.6);
+    }
+
+    #btnReset, #btnLoad {
+      background-color: white;
+      color: #666;
+      border: 1px solid #eee;
+    }
+    #btnReset:hover, #btnLoad:hover {
+      border-color: var(--primary-color);
+      color: var(--primary-color);
+      background-color: #fdfdfd;
+    }
+
+    /* --- Success Floating Animation --- */
+    .floating-success {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none; /* Click xuyên qua */
+      z-index: 9999;
+      animation: floatUpFade 1.5s ease-out forwards;
+    }
+
+    .success-icon {
+      width: 60px;
+      height: 60px;
+      background: var(--success-color); /* Màu xanh lá tươi */
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 5px 20px rgba(76, 175, 80, 0.4);
+    }
+    
+    .success-icon svg {
+      width: 32px;
+      height: 32px;
+      fill: white;
+    }
+
+    .success-text {
+      margin-top: 10px;
+      font-weight: 600;
+      color: var(--success-color);
+      background: white;
+      padding: 5px 12px;
+      border-radius: 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    @keyframes floatUpFade {
+      0% {
+        opacity: 0;
+        transform: translate(-50%, -40%) scale(0.8);
+      }
+      20% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1.1);
+      }
+      30% {
+        transform: translate(-50%, -50%) scale(1);
+      }
+      80% {
+        opacity: 1;
+      }
+      100% {
+        opacity: 0;
+        transform: translate(-50%, -100%);
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="main-card">
+    <h1>Chọn Vùng ROI 1911</h1>
+
+    <div class="switch-wrapper">
+      <span id="lblVideo" class="switch-label active" onclick="document.getElementById('modeSwitch').checked=false; setMode('video');">VIDEO FILE</span>
+      
+      <label class="switch">
+        <input type="checkbox" id="modeSwitch">
+        <span class="slider"></span>
+      </label>
+      
+      <span id="lblLive" class="switch-label" onclick="document.getElementById('modeSwitch').checked=true; setMode('live');">WEBCAM LIVE</span>
+    </div>
+
+    <div id="canvasWrapper">
+      <video id="videoVideo" src="{{ video_url }}" autoplay muted loop></video>
+
+      <video id="videoLive" autoplay muted playsinline style="display:none;"></video>
+
+      <canvas id="roiCanvas"></canvas>
+    </div>
+
+    <div id="info">Vẽ 4 điểm để tạo vùng</div>
+
+    <div class="controls">
+      <button id="btnReset">Xoá điểm</button>
+      <button id="btnLoad">Tải ROI cũ</button>
+      <button id="btnSave">Lưu & Xử lý</button>
+    </div>
+  </div>
+
+  <script>
+    const videoFile = document.getElementById("videoVideo");
+    const videoLive = document.getElementById("videoLive");
+    const canvas = document.getElementById("roiCanvas");
+    const ctx = canvas.getContext("2d");
+    const info = document.getElementById("info");
+    const btnReset = document.getElementById("btnReset");
+    const btnSave = document.getElementById("btnSave");
+    const btnLoad = document.getElementById("btnLoad");
+    const modeSwitch = document.getElementById("modeSwitch");
+    const lblVideo = document.getElementById("lblVideo");
+    const lblLive = document.getElementById("lblLive");
+
+    let currentMode = "video";
+    let points = [];
+    let liveStream = null;
+
+    // --- Helper: Show Success Animation ---
+    function showSuccessEffect(message = "Thành công!") {
+      // Tạo phần tử div chứa icon
+      const container = document.createElement('div');
+      container.className = 'floating-success';
+      container.innerHTML = `
+        <div class="success-icon">
+          <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+        </div>
+        <div class="success-text">${message}</div>
+      `;
+      document.body.appendChild(container);
+
+      // Tự động xóa khỏi DOM sau khi chạy xong animation (1.5s)
+      setTimeout(() => {
+        container.remove();
+      }, 1500);
+    }
+
+    function getActiveVideo() {
+      return currentMode === "video" ? videoFile : videoLive;
+    }
+
+    function resizeCanvas() {
+      const v = getActiveVideo();
+      const w = v.clientWidth || v.videoWidth || 640;
+      const h = v.clientHeight || v.videoHeight || 480;
+      // Chỉ resize khi kích thước hợp lệ
+      if (w && h) {
+        canvas.width = w;
+        canvas.height = h;
+        draw();
+      }
+    }
+
+    function updateLabels() {
+      if (currentMode === "video") {
+        lblVideo.classList.add("active");
+        lblLive.classList.remove("active");
+      } else {
+        lblVideo.classList.remove("active");
+        lblLive.classList.add("active");
+      }
+    }
+
+    async function setMode(mode) {
+      currentMode = mode;
+      updateLabels();
+
+      if (currentMode === "video") {
+        videoFile.style.display = "block";
+        videoLive.style.display = "none";
+        if (liveStream) {
+           liveStream.getTracks().forEach(track => track.stop());
+           liveStream = null;
+        }
+      } else {
+        videoFile.style.display = "none";
+        videoLive.style.display = "block";
+
+        if (!liveStream) {
+          try {
+            liveStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+            videoLive.srcObject = liveStream;
+          } catch (err) {
+            alert("Không mở được webcam: " + err);
+            // quay về video mode nếu lỗi
+            modeSwitch.checked = false;
+            setMode("video");
+            return;
+          }
+        }
+      }
+
+      points = [];
+      draw();
+
+      // Đợi render DOM
+      setTimeout(() => {
+        resizeCanvas();
+        loadROI();
+      }, 300);
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      if (points.length === 0) {
+        return;
+      }
+
+      // Vẽ đường bao
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = "#86D0FF"; // Dùng màu chủ đạo
+      ctx.shadowColor = "rgba(0,0,0,0.5)";
+      ctx.shadowBlur = 4;
+      ctx.fillStyle = "rgba(134, 208, 255, 0.25)"; // Màu fill nhạt
+
+      ctx.beginPath();
+      ctx.moveTo(points[0].x, points[0].y);
+      for (let i = 1; i < points.length; i++) {
+        ctx.lineTo(points[i].x, points[i].y);
+      }
+      if (points.length === 4) {
+        ctx.closePath();
+        ctx.fill();
+      }
+      ctx.stroke();
+
+      // Reset shadow cho các điểm
+      ctx.shadowBlur = 0;
+      
+      // Vẽ các điểm
+      for (const p of points) {
+        ctx.fillStyle = "#ffffff";
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 5, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = "#2196F3";
+        ctx.stroke();
+      }
+
+      info.innerText = `Points: ${points.length}/4`;
+    }
+
+    canvas.addEventListener("click", (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      if (points.length >= 4) return;
+      points.push({ x: Math.round(x), y: Math.round(y) });
+      draw();
+    });
+
+    btnReset.addEventListener("click", () => {
+      points = [];
+      draw();
+      info.innerText = "Đã xóa điểm";
+    });
+
+    async function loadROI() {
+      try {
+        const res = await fetch("/current_roi_1911?mode=" + currentMode);
+        const data = await res.json();
+        points = data.points || [];
+        draw();
+        info.innerText = points.length > 0 ? "Đã tải ROI cũ" : "Chưa có ROI";
+      } catch(e) {
+        console.error(e);
+      }
+    }
+
+    btnLoad.addEventListener("click", loadROI);
+
+    btnSave.addEventListener("click", async () => {
+      if (points.length !== 4) {
+        alert("Vui lòng chọn đủ 4 điểm để tạo vùng ROI.");
+        return;
+      }
+
+      // Hiển thị trạng thái đang xử lý
+      const originalBtnText = btnSave.innerText;
+      btnSave.innerText = "Đang xử lý...";
+      btnSave.disabled = true;
+
+      try {
+        const res = await fetch("/save_roi_1911", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ points, sourceType: currentMode }),
+        });
+
+        if (!res.ok) {
+          const text = await res.text();
+          alert("Lỗi: " + text);
+          return;
+        }
+        
+        const data = await res.json();
+
+        // --- SUCCESS: Gọi hiệu ứng Tick xanh bay lên ---
+        if (currentMode === "video") {
+           showSuccessEffect("Đã xong Video!");
+           info.innerText = `Excel: ${data.excel}`;
+        } else {
+           showSuccessEffect("Đã lưu ROI Live!");
+           info.innerText = "Hãy chạy script đếm live.";
+        }
+
+      } catch (err) {
+        alert("Lỗi kết nối: " + err);
+      } finally {
+        // Trả lại trạng thái nút bấm
+        btnSave.innerText = originalBtnText;
+        btnSave.disabled = false;
+      }
+    });
+
+    // Event Switch Change
+    modeSwitch.addEventListener("change", () => {
+      if (modeSwitch.checked) {
+        setMode("live");
+      } else {
+        setMode("video");
+      }
+    });
+
+    // Resize events
+    videoFile.addEventListener("loadedmetadata", resizeCanvas);
+    videoFile.addEventListener("loadeddata", resizeCanvas);
+    window.addEventListener("resize", resizeCanvas);
+
+    // Init
+    setMode("video");
+  </script>
+</body>
+</html>
