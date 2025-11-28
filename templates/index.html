@@ -1,0 +1,551 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <title>ROI Annotator</title>
+  <style>
+    body {
+      background: #020617;
+      color: #e2e8f0;
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    .toolbar {
+      background: #020617;
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 1px solid #1e293b;
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
+    .toolbar select,
+    .toolbar button {
+      padding: 6px 12px;
+      border-radius: 6px;
+      border: 1px solid #475569;
+      background: #020617;
+      color: #e2e8f0;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .toolbar button.primary {
+      background: #0ea5e9;
+      border-color: #0ea5e9;
+      color: #0f172a;
+      font-weight: 600;
+    }
+    .toolbar button:disabled,
+    .toolbar select:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .coord {
+      margin-left: auto;
+      font-size: 13px;
+      opacity: 0.7;
+    }
+    .wrap {
+      display: flex;
+      justify-content: center;
+      padding: 20px;
+    }
+    .video-box {
+      position: relative;
+      max-width: 960px;
+      width: 100%;
+      background: black;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 20px 45px rgba(0, 0, 0, 0.6);
+    }
+    video,
+    img {
+      width: 100%;
+      display: block;
+    }
+    canvas {
+      position: absolute;
+      inset: 0;
+      pointer-events: auto;
+    }
+    
+    /* ===== LOADING OVERLAY WITH ANIMATION ===== */
+    #loadingOverlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(2, 6, 23, 0.95);
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      backdrop-filter: blur(8px);
+    }
+
+    .loading-container {
+      text-align: center;
+    }
+
+    .ai-loader {
+      position: relative;
+      width: 120px;
+      height: 120px;
+      margin: 0 auto 30px;
+    }
+
+    .orbit {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border: 3px solid rgba(14, 165, 233, 0.2);
+      border-radius: 50%;
+      animation: rotate 3s linear infinite;
+    }
+
+    .orbit:nth-child(2) {
+      width: 80%;
+      height: 80%;
+      top: 10%;
+      left: 10%;
+      animation-duration: 2s;
+      animation-direction: reverse;
+      border-color: rgba(34, 197, 94, 0.2);
+    }
+
+    .orbit:nth-child(3) {
+      width: 60%;
+      height: 60%;
+      top: 20%;
+      left: 20%;
+      animation-duration: 4s;
+      border-color: rgba(168, 85, 247, 0.2);
+    }
+
+    .particle {
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      background: linear-gradient(135deg, #0ea5e9, #06b6d4);
+      border-radius: 50%;
+      box-shadow: 0 0 20px rgba(14, 165, 233, 0.8);
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    .orbit:nth-child(1) .particle {
+      animation: glow 1.5s ease-in-out infinite;
+    }
+
+    .orbit:nth-child(2) .particle {
+      background: linear-gradient(135deg, #22c55e, #10b981);
+      box-shadow: 0 0 20px rgba(34, 197, 94, 0.8);
+      animation: glow 1.5s ease-in-out infinite 0.5s;
+    }
+
+    .orbit:nth-child(3) .particle {
+      background: linear-gradient(135deg, #a855f7, #8b5cf6);
+      box-shadow: 0 0 20px rgba(168, 85, 247, 0.8);
+      animation: glow 1.5s ease-in-out infinite 1s;
+    }
+
+    .core {
+      position: absolute;
+      width: 30px;
+      height: 30px;
+      background: linear-gradient(135deg, #0ea5e9, #0284c7);
+      border-radius: 50%;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      box-shadow: 0 0 30px rgba(14, 165, 233, 0.9);
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    .loading-text {
+      color: #e2e8f0;
+      font-size: 20px;
+      font-weight: 600;
+      letter-spacing: 2px;
+      margin-bottom: 12px;
+      animation: fadeInOut 2s ease-in-out infinite;
+    }
+
+    .dots {
+      display: inline-block;
+    }
+
+    .dot {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      background: #0ea5e9;
+      border-radius: 50%;
+      margin: 0 3px;
+      animation: bounce 1.4s ease-in-out infinite;
+    }
+
+    .dot:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+
+    .dot:nth-child(3) {
+      animation-delay: 0.4s;
+    }
+
+    .status-text {
+      color: rgba(226, 232, 240, 0.7);
+      font-size: 14px;
+      margin-top: 10px;
+    }
+
+    @keyframes rotate {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+      }
+      50% {
+        transform: translate(-50%, -50%) scale(1.3);
+        opacity: 0.8;
+      }
+    }
+
+    @keyframes glow {
+      0%, 100% {
+        transform: translate(-50%, -50%) scale(1);
+      }
+      50% {
+        transform: translate(-50%, -50%) scale(1.4);
+      }
+    }
+
+    @keyframes fadeInOut {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+
+    @keyframes bounce {
+      0%, 80%, 100% {
+        transform: translateY(0);
+      }
+      40% {
+        transform: translateY(-10px);
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div id="loadingOverlay">
+  <div class="loading-container">
+    <div class="ai-loader">
+      <div class="orbit">
+        <div class="particle"></div>
+      </div>
+      <div class="orbit">
+        <div class="particle"></div>
+      </div>
+      <div class="orbit">
+        <div class="particle"></div>
+      </div>
+      <div class="core"></div>
+    </div>
+    <div class="loading-text">
+      AI PROCESSING
+      <div class="dots">
+        <span class="dot"></span>
+        <span class="dot"></span>
+        <span class="dot"></span>
+      </div>
+    </div>
+    <div class="status-text">Please wait a moment...</div>
+  </div>
+</div>
+
+<div class="toolbar">
+  <select id="sourceSelect">
+    <option value="file">File video</option>
+    <option value="camera">Camera live</option>
+  </select>
+
+  <button id="editBtn">🛠 Setting ROI</button>
+  <button id="undoBtn">↶ Undo</button>
+  <button id="clearBtn">✕ Clear</button>
+  <button id="saveBtn" class="primary">✔ Save ROI &amp; Run</button>
+
+  <span class="coord" id="coord">x:-, y:-</span>
+</div>
+
+<div class="wrap">
+  <div class="video-box" id="videoBox">
+    <video id="videoFile" src="{{ video_url }}" autoplay muted loop playsinline></video>
+    <img id="videoCam" src="/video_feed" style="display:none;" />
+    <canvas id="canvas"></canvas>
+  </div>
+</div>
+
+<script>
+  const CAM_FRAME_W = {{ cam_frame_w | tojson }};
+  const CAM_FRAME_H = {{ cam_frame_h | tojson }};
+
+  const sourceSelect = document.getElementById("sourceSelect");
+  const videoFile    = document.getElementById("videoFile");
+  const videoCam     = document.getElementById("videoCam");
+  const canvas       = document.getElementById("canvas");
+  const ctx          = canvas.getContext("2d");
+  const coord        = document.getElementById("coord");
+
+  const editBtn  = document.getElementById("editBtn");
+  const undoBtn  = document.getElementById("undoBtn");
+  const clearBtn = document.getElementById("clearBtn");
+  const saveBtn  = document.getElementById("saveBtn");
+  const loadingOverlay = document.getElementById("loadingOverlay");
+
+  let currentMode = "file";
+  let baseW = 0;
+  let baseH = 0;
+
+  let roiPointsFrame = [];
+  let displayPoints  = [];
+
+  function disableUI(flag) {
+    [sourceSelect, editBtn, undoBtn, clearBtn, saveBtn].forEach(el => {
+      el.disabled = flag;
+    });
+    canvas.style.pointerEvents = flag ? "none" : "auto";
+  }
+
+  function showLoading() {
+    disableUI(true);
+    loadingOverlay.style.display = "flex";
+  }
+
+  function hideLoading() {
+    disableUI(false);
+    loadingOverlay.style.display = "none";
+  }
+
+  function resizeCanvas() {
+    const box = document.getElementById("videoBox");
+    const r = box.getBoundingClientRect();
+    canvas.width = r.width;
+    canvas.height = r.height;
+    recomputeDisplayPoints();
+    redraw();
+  }
+
+  function recomputeDisplayPoints() {
+    displayPoints = [];
+    if (!baseW || !baseH) return;
+    const box = document.getElementById("videoBox");
+    const r = box.getBoundingClientRect();
+    const w = r.width;
+    const h = r.height;
+    roiPointsFrame.forEach(p => {
+      const xd = p.x / baseW * w;
+      const yd = p.y / baseH * h;
+      displayPoints.push({x: xd, y: yd});
+    });
+  }
+
+  function redraw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    displayPoints.forEach(p => {
+      ctx.fillStyle = "#22c55e";
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 5, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = "#22c55e";
+
+    if (displayPoints.length >= 2) {
+      ctx.beginPath();
+      ctx.moveTo(displayPoints[0].x, displayPoints[0].y);
+      for (let i = 1; i < displayPoints.length; i++) {
+        ctx.lineTo(displayPoints[i].x, displayPoints[i].y);
+      }
+      ctx.stroke();
+    }
+
+    if (displayPoints.length === 4) {
+      ctx.strokeStyle = "#0ea5e9";
+      ctx.beginPath();
+      ctx.moveTo(displayPoints[0].x, displayPoints[0].y);
+      for (let i = 1; i < displayPoints.length; i++) {
+        ctx.lineTo(displayPoints[i].x, displayPoints[i].y);
+      }
+      ctx.closePath();
+      ctx.stroke();
+    }
+  }
+
+  canvas.addEventListener("mousemove", e => {
+    const r = canvas.getBoundingClientRect();
+    const xd = e.clientX - r.left;
+    const yd = e.clientY - r.top;
+    coord.textContent = `x:${Math.round(xd)}, y:${Math.round(yd)}`;
+  });
+
+  canvas.addEventListener("mouseleave", () => {
+    coord.textContent = "x:-, y:-";
+  });
+
+  canvas.addEventListener("click", e => {
+    if (roiPointsFrame.length >= 4) return;
+    if (!baseW || !baseH) {
+      alert("Nguồn video chưa sẵn sàng.");
+      return;
+    }
+    const r = canvas.getBoundingClientRect();
+    const xd = e.clientX - r.left;
+    const yd = e.clientY - r.top;
+
+    const fx = xd / r.width * baseW;
+    const fy = yd / r.height * baseH;
+
+    roiPointsFrame.push({x: Math.round(fx), y: Math.round(fy)});
+    recomputeDisplayPoints();
+    redraw();
+  });
+
+  undoBtn.onclick = () => {
+    roiPointsFrame.pop();
+    recomputeDisplayPoints();
+    redraw();
+  };
+
+  clearBtn.onclick = () => {
+    roiPointsFrame = [];
+    recomputeDisplayPoints();
+    redraw();
+  };
+
+  editBtn.onclick = () => {
+    clearBtn.click();
+    alert("Chế độ chỉnh ROI: click 4 điểm rồi bấm Save.");
+  };
+
+  saveBtn.onclick = async () => {
+    if (roiPointsFrame.length !== 4) {
+      alert("Cần đủ 4 điểm ROI.");
+      return;
+    }
+
+    showLoading();
+
+    let restoreCamera = false;
+    if (currentMode === "camera") {
+      if (videoCam.src) {
+        restoreCamera = true;
+        console.log("Stopping camera preview before running AI...");
+        videoCam.src = "";
+      }
+    }
+
+    try {
+      const res = await fetch("/save_roi", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+          points: roiPointsFrame,
+          sourceType: currentMode
+        })
+      });
+
+      if (!res.ok) throw new Error(await res.text());
+      alert("Đã lưu ROI & chạy AI!");
+    } catch (err) {
+      console.error(err);
+      alert("Lỗi: " + err.message);
+    } finally {
+      hideLoading();
+
+      if (currentMode === "camera" && restoreCamera) {
+        console.log("Restarting camera preview...");
+        videoCam.src = "/video_feed?_=" + Date.now();
+      }
+    }
+  };
+
+  async function loadInitialROI() {
+    try {
+      const res = await fetch("/current_roi?mode=" + currentMode);
+      if (!res.ok) return;
+      const data = await res.json();
+      const pts = data.points;
+      if (!Array.isArray(pts) || pts.length !== 4) {
+        roiPointsFrame = [];
+        recomputeDisplayPoints();
+        redraw();
+        return;
+      }
+      roiPointsFrame = pts.map(p => ({x: p.x, y: p.y}));
+      recomputeDisplayPoints();
+      redraw();
+    } catch (err) {
+      console.error("loadInitialROI error:", err);
+    }
+  }
+
+  function setupBaseSizeForMode() {
+    if (currentMode === "file") {
+      if (videoFile.videoWidth && videoFile.videoHeight) {
+        baseW = videoFile.videoWidth;
+        baseH = videoFile.videoHeight;
+        resizeCanvas();
+        loadInitialROI();
+      }
+    } else {
+      baseW = CAM_FRAME_W;
+      baseH = CAM_FRAME_H;
+      resizeCanvas();
+      loadInitialROI();
+    }
+  }
+
+  videoFile.addEventListener("loadedmetadata", () => {
+    if (currentMode === "file") {
+      setupBaseSizeForMode();
+    }
+  });
+
+  sourceSelect.addEventListener("change", () => {
+    currentMode = sourceSelect.value;
+
+    if (currentMode === "file") {
+      videoFile.style.display = "block";
+      videoCam.style.display = "none";
+      videoFile.src = "{{ video_url }}";
+      videoFile.play();
+    } else {
+      videoFile.style.display = "none";
+      videoCam.style.display = "block";
+      if (!videoCam.src) {
+        videoCam.src = "/video_feed";
+      }
+    }
+
+    roiPointsFrame = [];
+    displayPoints = [];
+    setupBaseSizeForMode();
+  });
+
+  window.addEventListener("resize", resizeCanvas);
+
+  window.addEventListener("load", () => {
+    currentMode = "file";
+    setupBaseSizeForMode();
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>G11 CV final</title>
+  
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      /* Palette: Indigo & Slate */
+      --primary: #6366f1;       /* Indigo 500 */
+      --primary-hover: #4f46e5; /* Indigo 600 */
+      --bg-body: #f8fafc;       /* Slate 50 */
+      --bg-card: #ffffff;
+      --text-main: #1e293b;     /* Slate 800 */
+      --text-muted: #64748b;    /* Slate 500 */
+      --border-color: #e2e8f0;  /* Slate 200 */
+      --success: #10b981;       /* Emerald 500 */
+      --shadow-soft: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg-body);
+      color: var(--text-main);
+      margin: 0;
+      padding: 40px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    /* --- Header & Layout --- */
+    .header-group {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    h1 {
+      font-weight: 600;
+      color: var(--text-main);
+      margin: 0 0 8px 0;
+      font-size: 24px;
+      letter-spacing: -0.025em;
+    }
+
+    .subtitle {
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    .main-card {
+      background: var(--bg-card);
+      padding: 24px;
+      border-radius: 16px;
+      box-shadow: var(--shadow-soft);
+      border: 1px solid var(--border-color);
+      width: 100%;
+      max-width: 850px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* --- Mode Switcher (Segmented Control) --- */
+    .mode-switcher {
+      background: #f1f5f9;
+      padding: 4px;
+      border-radius: 8px;
+      display: inline-flex;
+      margin-bottom: 24px;
+      position: relative;
+    }
+
+    .mode-btn {
+      padding: 8px 24px;
+      border-radius: 6px;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .mode-btn.active {
+      background: white;
+      color: var(--primary);
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+
+    /* --- Canvas Area --- */
+    #canvasWrapper {
+      position: relative;
+      display: inline-block;
+      border-radius: 12px;
+      overflow: hidden;
+      background: #0f172a; /* Dark bg for video placeholder */
+      box-shadow: 0 0 0 1px var(--border-color); /* Subtle border */
+      line-height: 0;
+    }
+
+    video, #roiCanvas {
+      display: block;
+      max-width: 100%;
+      height: auto;
+    }
+
+    #roiCanvas {
+      position: absolute;
+      left: 0; top: 0;
+      cursor: crosshair;
+    }
+
+    /* --- Status Bar --- */
+    .status-bar {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 16px;
+      padding: 0 4px;
+    }
+
+    #info {
+      font-size: 13px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    /* --- Buttons --- */
+    .controls {
+      display: flex;
+      gap: 12px;
+    }
+
+    button.action-btn {
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      padding: 10px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Secondary Buttons */
+    .btn-secondary {
+      background-color: white;
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+    }
+    .btn-secondary:hover {
+      background-color: #f8fafc;
+      border-color: #cbd5e1;
+    }
+
+    /* Primary Button */
+    .btn-primary {
+      background-color: var(--primary);
+      border: 1px solid var(--primary);
+      color: white;
+      box-shadow: 0 1px 2px rgba(99, 102, 241, 0.2);
+    }
+    .btn-primary:hover {
+      background-color: var(--primary-hover);
+      transform: translateY(-1px);
+    }
+    .btn-primary:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* --- Success Notification --- */
+    .floating-toast {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1e293b;
+      color: white;
+      padding: 12px 24px;
+      border-radius: 50px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+      z-index: 9999;
+      animation: slideUpFade 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .check-icon {
+      width: 18px;
+      height: 18px;
+      background: var(--success);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .check-icon svg { width: 12px; fill: white; }
+
+    @keyframes slideUpFade {
+      from { opacity: 0; transform: translate(-50%, 20px); }
+      to { opacity: 1; transform: translate(-50%, 0); }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header-group">
+    <h1>Group 11: Tran Phuoc Dien & Nguyen The Nhan</h1>
+    <div class="subtitle">Project name: StreetPulse</div>
+  </div>
+
+  <div class="main-card">
+    
+    <div class="mode-switcher">
+      <button id="btnModeVideo" class="mode-btn active" onclick="switchMode('video')">Video File</button>
+      <button id="btnModeLive" class="mode-btn" onclick="switchMode('live')">Webcam Live</button>
+    </div>
+
+    <div id="canvasWrapper">
+      <video id="videoVideo" src="{{ video_url }}" autoplay muted loop></video>
+      <video id="videoLive" autoplay muted playsinline style="display:none;"></video>
+      <canvas id="roiCanvas"></canvas>
+    </div>
+
+    <div class="status-bar">
+      <div id="info">Click to place 4 points</div>
+      
+      <div class="controls">
+        <button id="btnReset" class="action-btn btn-secondary">Reset</button>
+        <button id="btnLoad" class="action-btn btn-secondary">Load ROI</button>
+        <button id="btnSave" class="action-btn btn-primary">Save & Process</button>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const videoFile = document.getElementById("videoVideo");
+    const videoLive = document.getElementById("videoLive");
+    const canvas = document.getElementById("roiCanvas");
+    const ctx = canvas.getContext("2d");
+    const info = document.getElementById("info");
+    const btnReset = document.getElementById("btnReset");
+    const btnSave = document.getElementById("btnSave");
+    const btnLoad = document.getElementById("btnLoad");
+    const btnModeVideo = document.getElementById("btnModeVideo");
+    const btnModeLive = document.getElementById("btnModeLive");
+
+    let currentMode = "video";
+    let points = [];
+    let liveStream = null;
+
+    // Video dimensions
+    let origVideoW = 0;
+    let origVideoH = 0;
+    let displayW = 0;
+    let displayH = 0;
+
+    const VIDEO_DISPLAY_W = 768;
+    const VIDEO_DISPLAY_H = 448;
+
+    function showToast(message) {
+      // Remove existing toasts
+      const existing = document.querySelector('.floating-toast');
+      if (existing) existing.remove();
+
+      const toast = document.createElement('div');
+      toast.className = 'floating-toast';
+      toast.innerHTML = `
+        <div class="check-icon">
+          <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+        </div>
+        <span>${message}</span>
+      `;
+      document.body.appendChild(toast);
+      
+      // Fade out
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translate(-50%, 20px)';
+        toast.style.transition = 'all 0.4s ease';
+        setTimeout(() => toast.remove(), 400);
+      }, 2500);
+    }
+
+    function getActiveVideo() {
+      return currentMode === "video" ? videoFile : videoLive;
+    }
+
+    function resizeCanvas() {
+      const v = getActiveVideo();
+
+      if (currentMode === "video") {
+        origVideoW = v.videoWidth || VIDEO_DISPLAY_W;
+        origVideoH = v.videoHeight || VIDEO_DISPLAY_H;
+        displayW = VIDEO_DISPLAY_W;
+        displayH = VIDEO_DISPLAY_H;
+        v.style.width = displayW + "px";
+        v.style.height = displayH + "px";
+      } else {
+        // Live mode uses native resolution
+        origVideoW = v.videoWidth || v.clientWidth || 640;
+        origVideoH = v.videoHeight || v.clientHeight || 480;
+        displayW = origVideoW;
+        displayH = origVideoH;
+        v.style.width = displayW + "px";
+        v.style.height = displayH + "px";
+      }
+
+      canvas.width = displayW;
+      canvas.height = displayH;
+      draw();
+    }
+
+    function switchMode(mode) {
+      currentMode = mode;
+      
+      // Update UI Tabs
+      if (mode === 'video') {
+        btnModeVideo.classList.add('active');
+        btnModeLive.classList.remove('active');
+        videoFile.style.display = "block";
+        videoLive.style.display = "none";
+        
+        if (liveStream) {
+          liveStream.getTracks().forEach(track => track.stop());
+          liveStream = null;
+        }
+      } else {
+        btnModeVideo.classList.remove('active');
+        btnModeLive.classList.add('active');
+        videoFile.style.display = "none";
+        videoLive.style.display = "block";
+
+        if (!liveStream) {
+          navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+            .then(stream => {
+              liveStream = stream;
+              videoLive.srcObject = liveStream;
+            })
+            .catch(err => {
+              alert("Webcam access denied: " + err);
+              switchMode("video");
+            });
+        }
+      }
+
+      points = [];
+      draw();
+
+      setTimeout(() => {
+        resizeCanvas();
+        loadROI();
+      }, 300);
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      if (points.length === 0) {
+        info.innerText = "Click video to mark 4 points";
+        return;
+      }
+
+      // Modern ROI style
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = "#6366f1"; // Primary Color
+      ctx.fillStyle = "rgba(99, 102, 241, 0.2)"; // Semi-transparent Primary
+
+      ctx.beginPath();
+      ctx.moveTo(points[0].x, points[0].y);
+      for (let i = 1; i < points.length; i++) {
+        ctx.lineTo(points[i].x, points[i].y);
+      }
+      
+      if (points.length === 4) {
+        ctx.closePath();
+        ctx.fill();
+      }
+      ctx.stroke();
+
+      // Draw Anchors
+      for (const p of points) {
+        ctx.fillStyle = "#ffffff";
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 5, 0, Math.PI * 2); // Slightly smaller dots
+        ctx.fill();
+        ctx.stroke();
+      }
+
+      info.innerText = `Points set: ${points.length} / 4`;
+    }
+
+    canvas.addEventListener("click", (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      if (points.length >= 4) return;
+      points.push({ x: Math.round(x), y: Math.round(y) });
+      draw();
+    });
+
+    btnReset.addEventListener("click", () => {
+      points = [];
+      draw();
+      info.innerText = "Points cleared.";
+    });
+
+    async function loadROI() {
+      try {
+        const res = await fetch("/current_roi_1911?mode=" + currentMode);
+        const data = await res.json();
+        const serverPoints = data.points || [];
+
+        if (!origVideoW || !origVideoH) {
+          // Retry if video metadata isn't loaded yet
+          setTimeout(loadROI, 500);
+          return;
+        }
+
+        if (serverPoints.length === 4) {
+          let scaleX = (currentMode === "video") ? (displayW / origVideoW) : 1;
+          let scaleY = (currentMode === "video") ? (displayH / origVideoH) : 1;
+
+          points = serverPoints.map(p => ({
+            x: Math.round(p.x * scaleX),
+            y: Math.round(p.y * scaleY),
+          }));
+          draw();
+          showToast("ROI Loaded successfully");
+        } else {
+          points = [];
+          draw();
+        }
+      } catch (e) {
+        console.error(e);
+        info.innerText = "Error loading ROI.";
+      }
+    }
+
+    btnLoad.addEventListener("click", loadROI);
+
+    btnSave.addEventListener("click", async () => {
+      if (points.length !== 4) {
+        alert("Please define a region with exactly 4 points.");
+        return;
+      }
+
+      const originalBtnText = btnSave.innerText;
+      btnSave.innerText = "Processing...";
+      btnSave.disabled = true;
+
+      let scaleX = (currentMode === "video") ? (origVideoW / displayW) : 1;
+      let scaleY = (currentMode === "video") ? (origVideoH / displayH) : 1;
+
+      const pointsForServer = points.map(p => ({
+        x: Math.round(p.x * scaleX),
+        y: Math.round(p.y * scaleY),
+      }));
+
+      try {
+        const res = await fetch("/save_roi_1911", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ points: pointsForServer, sourceType: currentMode }),
+        });
+
+        if (!res.ok) {
+          const text = await res.text();
+          alert("Server Error: " + text);
+          return;
+        }
+        
+        const data = await res.json();
+
+        if (currentMode === "video") {
+          showToast("Video Processed!");
+          info.innerText = `Saved to: ${data.excel}`;
+        } else {
+          showToast("Live ROI Saved!");
+          info.innerText = "Ready for live counting script.";
+        }
+
+      } catch (err) {
+        alert("Connection Error: " + err);
+      } finally {
+        btnSave.innerText = originalBtnText;
+        btnSave.disabled = false;
+      }
+    });
+
+    videoFile.addEventListener("loadedmetadata", resizeCanvas);
+    videoLive.addEventListener("loadedmetadata", resizeCanvas);
+    window.addEventListener("resize", resizeCanvas);
+
+    // Initialize
+    switchMode("video");
+  </script>
+</body>
+</html>
