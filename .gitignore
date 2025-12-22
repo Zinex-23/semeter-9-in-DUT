@@ -1,0 +1,5 @@
+# Bỏ qua các thư mục build
+**/build/
+
+# Bỏ qua file chứa secret (quan trọng)
+**/dart-defines.local.json

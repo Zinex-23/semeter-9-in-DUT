@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "86321879683",
+    "firebase_url": "https://simulated-d40be-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "simulated-d40be",
+    "storage_bucket": "simulated-d40be.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:86321879683:android:dee281775e831256c159b6",
+        "android_client_info": {
+          "package_name": "com.gr4.pbl6_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDBmiL0BU3HsQo8n4mwxeIb7s1_UW1KFG0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
